@@ -2,3 +2,4 @@
 score.py
 __pycache__/*
 WSJ_POS_CORPUS_FOR_STUDENTS/
+*.pos

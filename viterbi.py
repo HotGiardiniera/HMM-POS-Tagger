@@ -7,25 +7,27 @@ WORDS = None
 POS = None
 
 def usage():
-    print('viterbi.py')
-    print("Note: This program expects two json files in the same directory:")
-    print("trainingDataPOS.json")
-    print("trainingDataWORD.json\n")
-    print("args")
-    print('-d  Optional. Debug mode')
+    sys.stdout.write('viterbi.py\n')
+    sys.stdout.write("Note: This program expects two json files in the same directory:\n")
+    sys.stdout.write("trainingDataPOS.json\n")
+    sys.stdout.write("trainingDataWORD.json\n\n")
+    sys.stdout.write("args\n")
+    sys.stdout.write('-d  Optional. Debug mode\n')
 
 def get_emission(state, word):
+    #TODO handle unknown words properly
+    if word not in WORDS:
+        return 1/len(POS)
     pos = POS[state]
     if not pos['words'].get(word):
-        #TODO handle unknown words properly
-        return 1/pos['word_count']
-    return pos['words'][word] / pos['word_count']
+        return 0
+    return pos['words'][word] / pos['count']
 
 def get_transition(state, prev_state):
     pos = POS[prev_state]
     if not pos['arcs'].get(state):
         return 0
-    return pos['arcs'][state] / pos['arc_count']
+    return pos['arcs'][state] / pos['count']
 
 def maxargmaxprob(t, N, state, emission, unique_pos, Viterbi):
     pmax = -1
@@ -71,7 +73,7 @@ def main():
             unique_pos.insert(0, "START")
             unique_pos.insert(len(unique_pos),"END")
     except IOError:
-        print('trainingDataPOS.json is not in invoking directory! Exiting...')
+        sys.stdout.write('trainingDataPOS.json is not in invoking directory! Exiting...\n')
         sys.exit()
 
     try:
@@ -79,10 +81,8 @@ def main():
             WORDS = json.load(f)
             unique_words = {w for w in WORDS}  # Set toe check if a word we are reding is in 
     except IOError:
-        print('trainingDataWORD.json is not in invoking directory! Exiting...')
+        sys.stdout.write('trainingDataWORD.json is not in invoking directory! Exiting...\n')
         sys.exit()
-
-    # print(POS)
 
 
     # Read our sentence file and split into sentences on newlines
@@ -93,22 +93,19 @@ def main():
         sentences = sentences[:-1]  # Need to remove the last space in the sentence
     
     N = len(unique_pos)  # This is our number of part of speeches includes start and end
-    print(sentences)
 
     # File we are writing to
     outfile = sentence_file.split('/')[-1]
     outfile = outfile.split('.')[0]
     outfile = ".".join([outfile, "pos"])
-
+    outfile = open(outfile, "w")
 
     for sentence in sentences:
-    # for i in range(2):
-        # sentence = sentences[i].split('\n')
+    # for i in range(1):
+    #     sentence = sentences[i]
         sentence = sentence.split('\n')
-        # print(s)
         T = len(sentence) # This is our time or columns
 
-        print("sentence", sentence)
 
         viterbi = [ [0] * (T+2) for _ in range(N)]  # Generate a zero matrix of viterbi probabilities
         back_pointers = [ [0] * (T+2) for _ in range(N)]  
@@ -126,7 +123,6 @@ def main():
                 viterbi[s][t] = pmax
                 back_pointers[s][t] = argmax
 
-        # print("Final time", T)
         best, endback = maxargmaxprob(T+1, N-1, len(unique_pos)-1, 1, unique_pos, viterbi)
         viterbi[N-1][T] = best
         back_pointers[N-1][len(sentence)] = endback
@@ -137,14 +133,22 @@ def main():
             endback = back_pointers[endback[0]][endback[1]]
         pos_indicies.reverse()
 
+        # Below is for debugging our Viterbi matrix TODO delete when done
         # for t in range(1, N-1):
         #     print(unique_pos[t])
         # print("{0: <5} {1}".format('',list(range(T+1))))
         # for i, row in enumerate(back_pointers):
         #     print("{0: <5} {1}".format(unique_pos[i], row))
-        print(pos_indicies)
+        # print(pos_indicies)
 
-        # Finally write to a file called 
+        # Finally write our sentence to the outfile
+        for i, word in enumerate(sentence):
+            word += "\t"+pos_indicies[i]+"\n"
+            outfile.write(word)
+        outfile.write("\n")
+
+    outfile.close()
+    sys.stdout.write("Done!\n")
 
 if __name__ == '__main__':
     main()
