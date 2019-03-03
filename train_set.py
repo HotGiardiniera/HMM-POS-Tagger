@@ -20,6 +20,21 @@ def usage():
     print("-t, --trainingset=trainingfile   Optional. File of existing training data to add to")
     print('-d                               Optional. Debug mode')
 
+def check_plural(word):
+    # Check if there is a sigular equivalent
+    chopped = None
+    if word.val[-3:] == 'ies':
+        chopped = word.val[:-3] + 'y'
+    elif word.val[-2:] == 'es':
+        chopped = word.val[:-2]
+    elif word.val[-1] == 's':
+        chopped = word.val[:-1]
+    if chopped:
+        potential = chopped in WORDS
+        if chopped.istitle():
+            potential = potential or chopped.lower() in WORDS
+        return potential
+    return False
 
 def main():
     opts, args = getopt.getopt(sys.argv[1:], "f:t:d", ["file=", "trainingset="])
@@ -58,6 +73,7 @@ def main():
     POS["END"] = end
 
     prev_state = START  # When opening a new training file we expect it to start with a new sentence
+    prev_state2 = START
 
     with open(file) as f:
         line = f.readline()
@@ -71,6 +87,13 @@ def main():
                 else:
                     word = Word(line[0])
                     WORDS[line[0]] = word
+                # Check if the word is upper case and exists as lower case
+                if word.val.istitle(): # Starts with a capital
+                    if word.val.lower() in WORDS:
+                        word.hasLowerEquiv = 1
+                if check_plural(word):
+                    word.hasSingularEquiv = 1
+
 
                 pos = POS.get(line[1])
                 if pos:
@@ -86,6 +109,11 @@ def main():
                 # Set for transition probabilities
                 prev_state.arcs[pos] += 1
                 prev_state.arc_count += 1
+
+                if not (prev_state == START and  prev_state2 == START):
+                    prev_state2.two_arcs[",".join([prev_state.val, pos.val])] += 1
+
+                prev_state2 = prev_state
                 prev_state = pos
 
             else: # Need to deal with the end of a sentence
@@ -93,6 +121,7 @@ def main():
                 prev_state.arc_count += 1
                 sentences += 1
                 prev_state = START
+                prev_state2 = START
                 START.count += 1
             line = f.readline()
 
@@ -122,7 +151,7 @@ def main():
             if json_list.get(k):
                 print("FATAL! duplicate words, counts will be off!")
                 exit(-1)
-            json_list[k] = v.count
+            json_list[k] = v.as_JSON()
 
         json.dump(json_list, out, indent=2)
         print("Training WORD data written to", training_file_words)
