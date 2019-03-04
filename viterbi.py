@@ -14,10 +14,51 @@ MONOGRAM_WEIGHT = 0
 BIGRAM_WEIGHT = .999
 TRIGRAM_WEIGHT = .001
 
+# Known types from the PennPOS list
 proper_nouns = {'NNP', 'NNPS'}
 nouns = {'NN', 'NNS'}
 verbs = {'VB', 'VBD', 'VBG', 'VBN', 'VBZ'}
 determinient = "DT"
+adjectives = {"JJ", "JJR", "JJS"}
+
+# Suffixes
+NOUN_SUFFIXES = {
+    "ion",
+    "sion",
+    "tion",
+    "acy",
+    "age",
+    "hood",
+    "ar",
+    "or",
+    "ism",
+    "ist",
+    "ment",
+    "ness",
+    "y",
+    "ity"
+}
+
+ADJ_SUFFIXES = {
+    "al",
+    "ful",
+    "ly",
+    "ic",
+    "ish",
+    "like",
+    "ous",
+    "y",
+    "ate",
+    "able",
+    "ible"
+}
+
+VERB_SUFFIXES = {
+    "ify",
+    "ate",
+    "ize",
+    "en"
+}
 
 def usage():
     sys.stdout.write('viterbi.py\n')
@@ -44,19 +85,20 @@ def get_transition(state, prev_state):
         return 0
     return pos['arcs'][state] / pos['count']
 
-def get_transition2(state, prev_state, prev_state2):
+def get_transition2(state, prev_state, prev_state2, prev_word, prev_word2):
     # Caclulates a two back transition
     pos2 = POS[prev_state2]
-
-    total_prev_prev2 = pos2['arcs'].get(prev_state)
+    cap = str(1) if prev_word[0].isupper() else str(0)
+    total_prev_prev2 = pos2['arc_cap'].get(",".join([prev_state, cap]))
     if not total_prev_prev2:
         return 0
-    total_prev = pos2['two_arcs'].get(",".join([prev_state, state]))
+    cap = str(1) if prev_word2[0].isupper() else str(0)
+    total_prev = pos2['two_arcs'].get(",".join([prev_state, state, cap]))
     if not total_prev:
         return 0
     return total_prev / total_prev_prev2
 
-# Hueristic for proper checking
+# Hueristic for proper noun checking
 def checkproper(word, prev_state, state):
     bias = 0
     if word.istitle():
@@ -74,9 +116,38 @@ def checkproper(word, prev_state, state):
                 bias = HEURISTIC_BIAS
     return bias
 
+# Hueristic for checking suffixes
+def check_suffix(word, state):
+    # Firs strip out any plural form
+    plural = False
+    if len(word) > 3:
+        if word[-3:] == "ies":
+            plural = True
+            word = word[:-3]
+        elif word[-2:] == "es":
+            plural = True
+            word = word[:-2]
+        elif word[-1] == "s":
+            plural = True
+            word = word[:-1]
+
+    bias = 0
+
+    if state in nouns and word.endswith(tuple(NOUN_SUFFIXES)):
+        # Possible noun
+        bias = .2
+    elif state in verbs and word.endswith(tuple(ADJ_SUFFIXES)):
+        # Possible Adj
+        bias = .2
+    elif state in adjectives and word.endswith(tuple(VERB_SUFFIXES)):
+        # Possible verb TODO deal with superlatives
+        bias = .2
+    return bias
 
 
-def maxargmaxprob(t, N, state, word, unique_pos, Viterbi, last_state):
+
+
+def maxargmaxprob(t, N, state, word, unique_pos, Viterbi, last_state, prev_word, prev_word2):
     pmax = -1
     argmax = (0,t-1)
     if word == "END":
@@ -88,14 +159,15 @@ def maxargmaxprob(t, N, state, word, unique_pos, Viterbi, last_state):
         # trans = BIGRAM_WEIGHT*trans + TRIGRAM_WEIGHT*get_transition2(unique_pos[state], unique_pos[state_prime], last_state)
         local_prob = Viterbi[state_prime][t-1]
         if word not in WORDS and word != "END":
-            trans = BIGRAM_WEIGHT*trans + TRIGRAM_WEIGHT*get_transition2(unique_pos[state], unique_pos[state_prime], last_state)
+            trans = BIGRAM_WEIGHT*trans + TRIGRAM_WEIGHT*get_transition2(unique_pos[state], unique_pos[state_prime], last_state, prev_word, prev_word2)
             trans += MONOGRAM_WEIGHT* POS[unique_pos[state]]['count']/N
             # Proper noun check
             trans += checkproper(word, unique_pos[state_prime], unique_pos[state])
+            # trans += check_suffix(word, unique_pos[state])
             emission = 1
         UNKNOWN_WORDS.add(word)
 
-        local_prob *= trans * emission
+        local_prob *= trans * emission * 100
 
         if local_prob > pmax:
             pmax = local_prob
@@ -182,12 +254,12 @@ def main():
 
         for t in range(2, T+1):
             for s in range(1, N-1):
-                pmax, argmax = maxargmaxprob(t, N-1, s, sentence[t-1], unique_pos, viterbi, last_state)
+                pmax, argmax = maxargmaxprob(t, N-1, s, sentence[t-1], unique_pos, viterbi, last_state, sentence[t-2], sentence[t-3])
                 viterbi[s][t] = pmax
                 back_pointers[s][t] = argmax
                 last_state = unique_pos[argmax[0]]
 
-        best, endback = maxargmaxprob(T+1, N-1, len(unique_pos)-1, "END", unique_pos, viterbi, last_state)
+        best, endback = maxargmaxprob(T+1, N-1, len(unique_pos)-1, "END", unique_pos, viterbi, last_state, len(unique_pos)-2, len(unique_pos)-3)
         viterbi[N-1][T] = best
         back_pointers[N-1][len(sentence)] = endback
 

@@ -74,6 +74,8 @@ def main():
 
     prev_state = START  # When opening a new training file we expect it to start with a new sentence
     prev_state2 = START
+    prev_word = " "
+    prev_word2 = " "
 
     with open(file) as f:
         line = f.readline()
@@ -111,17 +113,26 @@ def main():
                 prev_state.arc_count += 1
 
                 if not (prev_state == START and  prev_state2 == START):
-                    prev_state2.two_arcs[",".join([prev_state.val, pos.val])] += 1
+                    cap = str(1) if prev_word[0].isupper() else str(0)
+                    prev_state.arc_cap[",".join([pos.val, cap])] += 1
+                    cap = str(1) if prev_word2[0].isupper() else str(0)
+                    prev_state2.two_arcs[",".join([prev_state.val, pos.val, cap])] += 1
 
                 prev_state2 = prev_state
                 prev_state = pos
+                prev_word = word.val
+                prev_word2 = prev_word
 
             else: # Need to deal with the end of a sentence
                 prev_state.arcs[end] += 1
                 prev_state.arc_count += 1
                 sentences += 1
+
                 prev_state = START
                 prev_state2 = START
+                prev_word = " "
+                prev_word2 = " "
+
                 START.count += 1
             line = f.readline()
 

@@ -11,6 +11,7 @@ class Pos:
         self.arc_count = arc_count  # arc_count should be the same as words but we keep it for sanity
         self.arcs = defaultdict(int)  # Hash of where this POS state can arc to.
         self.two_arcs = defaultdict(int)
+        self.arc_cap = defaultdict(int)
 
     def __repr__(self):
         return self.__str__()
@@ -36,7 +37,8 @@ class Pos:
             'word_count': self.word_count,
             'arcs': clean_arcs,
             'two_arcs': self.two_arcs,
-            'arc_count': self.arc_count
+            'arc_count': self.arc_count,
+            'arc_cap': self.arc_cap
         }
 
 
