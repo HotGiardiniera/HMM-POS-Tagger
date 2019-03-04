@@ -163,7 +163,6 @@ def maxargmaxprob(t, N, state, word, unique_pos, Viterbi, last_state, prev_word,
             trans += MONOGRAM_WEIGHT* POS[unique_pos[state]]['count']/N
             # Proper noun check
             trans += checkproper(word, unique_pos[state_prime], unique_pos[state])
-            # trans += check_suffix(word, unique_pos[state])
             emission = 1
         UNKNOWN_WORDS.add(word)
 
@@ -247,7 +246,15 @@ def main():
         # Intialize the verterbit for the start state(s)
         viterbi[0][0] = 1
         for i in range(1, len(unique_pos)-1):
-            viterbi[i][1] = get_emission(unique_pos[i], sentence[0]) * get_transition(unique_pos[i], "START") * 100
+            word = sentence[0]
+            trans = get_transition(unique_pos[i], "START")
+            if word not in WORDS:
+                trans += checkproper(word, unique_pos[i], "START")
+                trans += check_suffix(word, unique_pos[i])
+                emission = 1
+            else:
+                emission = get_emission(unique_pos[i], word)
+            viterbi[i][1] = emission * trans * 100
             back_pointers[i][1] = (0,0)
 
         last_state = "START"
