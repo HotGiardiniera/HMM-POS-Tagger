@@ -1,5 +1,8 @@
 from collections import defaultdict
 
+SUFFIX_LEN = 4 # Sufficient to capture 'able' a common JJ
+NON_SUFFIX = ('.','!','`','\'','"','``')
+
 class Pos:
     # Special POS are START and END which represent the start of a 
     # sentence and the end of a sentence
@@ -12,6 +15,7 @@ class Pos:
         self.arcs = defaultdict(int)  # Hash of where this POS state can arc to.
         self.two_arcs = defaultdict(int)
         self.arc_cap = defaultdict(int)
+        self.suffix = defaultdict(int)  # Suffix appearance with this word
 
     def __repr__(self):
         return self.__str__()
@@ -27,6 +31,11 @@ class Pos:
     def add_word(self, word):
         self.words[word] += 1
         self.word_count += 1
+        suffix_len = min(SUFFIX_LEN, len(word.val)-1)
+        for i in range(suffix_len, 0 , -1):
+            suf = word.val[-i:]
+            if suf not in NON_SUFFIX:
+                self.suffix[suf] += 1
 
     def as_JSON(self):
         json_object = dict()
@@ -42,7 +51,8 @@ class Pos:
             'arcs': clean_arcs,
             'two_arcs': self.two_arcs,
             'arc_count': self.arc_count,
-            'arc_cap': self.arc_cap
+            'arc_cap': self.arc_cap,
+            'suffix': self.suffix
         }
 
 
