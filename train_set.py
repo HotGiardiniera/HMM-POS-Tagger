@@ -105,8 +105,7 @@ def main():
                     POS[line[1]] = pos
                 
                 # Set for word probabilities
-                pos.words[word] += 1
-                pos.word_count += 1
+                pos.add_word(word)
 
                 # Set for transition probabilities
                 prev_state.arcs[pos] += 1

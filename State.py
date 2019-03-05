@@ -24,6 +24,10 @@ class Pos:
             ret_str += "Emit {}\t{}\n".format(k.val, v)
         return ret_str
 
+    def add_word(self, word):
+        self.words[word] += 1
+        self.word_count += 1
+
     def as_JSON(self):
         json_object = dict()
 

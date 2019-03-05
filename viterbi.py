@@ -136,10 +136,10 @@ def check_suffix(word, state):
     if state in nouns and word.endswith(tuple(NOUN_SUFFIXES)):
         # Possible noun
         bias = .2
-    elif state in verbs and word.endswith(tuple(ADJ_SUFFIXES)):
+    elif state in adjectives and word.endswith(tuple(ADJ_SUFFIXES)):
         # Possible Adj
         bias = .2
-    elif state in adjectives and word.endswith(tuple(VERB_SUFFIXES)):
+    elif state in verbs and word.endswith(tuple(VERB_SUFFIXES)):
         # Possible verb TODO deal with superlatives
         bias = .2
     return bias
