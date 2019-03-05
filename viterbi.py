@@ -72,8 +72,8 @@ def get_emission(state, word):
     #TODO handle unknown words properly
     # Idea 1 suffix matching to add bias
     if word not in WORDS:
-        return 1/len(POS)
-        # return -1 # Flag for unknown word
+        # return 1/len(POS) # Original standard uniform unknown
+        return 0
     pos = POS[state]
     if not pos['words'].get(word):
         return 0
