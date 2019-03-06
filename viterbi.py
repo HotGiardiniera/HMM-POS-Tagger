@@ -120,6 +120,15 @@ def checkproper(word, prev_state, state):
                 bias = HEURISTIC_BIAS
     return bias
 
+
+def checkNumber(word, state, prev_state):
+    if word.replace('.', '',1).isdigit():
+        if state == "LS" and prev_state in ("START", ":"):
+            return HEURISTIC_BIAS
+        elif state == "CD" and state:
+            return HEURISTIC_BIAS
+    return 0
+
 # Hueristic for checking suffixes
 def check_suffix(word, state):
     # Firs strip out any plural form
@@ -178,6 +187,7 @@ def maxargmaxprob(t, N, state, word, unique_pos, Viterbi, last_state, prev_word,
             trans += MONOGRAM_WEIGHT* POS[unique_pos[state]]['count']/N
             # Proper noun check
             trans += checkproper(word, unique_pos[state_prime], unique_pos[state])
+            trans += checkNumber(word, unique_pos[state], unique_pos[state])
             # trans += suffixWeight(word, unique_pos[state_prime]) *.1
             emission = 1
         UNKNOWN_WORDS.add(word)
@@ -273,6 +283,7 @@ def main():
             trans = get_transition(unique_pos[i], "START")
             if word not in WORDS:
                 trans += checkproper(word, unique_pos[i], "START")
+                trans += checkNumber(word, unique_pos[i], "START")
                 # trans += check_suffix(word, unique_pos[i])
                 emission = 1
             else:
