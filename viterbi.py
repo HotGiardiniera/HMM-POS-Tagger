@@ -7,6 +7,10 @@ WORDS = None
 POS = None
 UNKNOWN_WORDS = set()
 
+SUFFIXES = None
+SUFFIX_LEN = 4 # Sufficient to capture 'able' a common JJ
+NON_SUFFIX = ('.','!','`','\'','"','``')
+
 # Weighting for 2nd/first degree token path and for suffix imoprtance
 TOKEN_BIAS = .5
 HEURISTIC_BIAS = .7
@@ -144,7 +148,18 @@ def check_suffix(word, state):
         bias = .2
     return bias
 
-
+def suffixWeight(word, pos):
+    suffix_len = min(SUFFIX_LEN, len(word)-1)
+    total = 0
+    pos_total = 0
+    for i in range(suffix_len, 0 , -1):
+        suf = word[-i:]
+        if suf not in NON_SUFFIX:
+            pos_total += POS[pos]['suffix'].get(suf) or 0
+            total = SUFFIXES.get(suf) or 0
+    if not total or not pos_total:
+        return 0
+    return pos_total/total
 
 
 def maxargmaxprob(t, N, state, word, unique_pos, Viterbi, last_state, prev_word, prev_word2):
@@ -163,6 +178,7 @@ def maxargmaxprob(t, N, state, word, unique_pos, Viterbi, last_state, prev_word,
             trans += MONOGRAM_WEIGHT* POS[unique_pos[state]]['count']/N
             # Proper noun check
             trans += checkproper(word, unique_pos[state_prime], unique_pos[state])
+            # trans += suffixWeight(word, unique_pos[state_prime]) *.1
             emission = 1
         UNKNOWN_WORDS.add(word)
 
@@ -216,6 +232,13 @@ def main():
     except IOError:
         sys.stdout.write('trainingDataWORD.json is not in invoking directory! Exiting...\n')
         sys.exit()
+    try:
+        with open('trainingDataSUFFIX.json') as f:
+            global SUFFIXES
+            SUFFIXES = json.load(f)
+    except IOError:
+        sys.stdout.write('trainingDataWORD.json is not in invoking directory! Exiting...\n')
+        sys.exit()
 
 
     # Read our sentence file and split into sentences on newlines
@@ -250,7 +273,7 @@ def main():
             trans = get_transition(unique_pos[i], "START")
             if word not in WORDS:
                 trans += checkproper(word, unique_pos[i], "START")
-                trans += check_suffix(word, unique_pos[i])
+                # trans += check_suffix(word, unique_pos[i])
                 emission = 1
             else:
                 emission = get_emission(unique_pos[i], word)

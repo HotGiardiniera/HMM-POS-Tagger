@@ -2,7 +2,7 @@
 
 import sys, getopt
 import json
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from State import Pos, Word
 
 DEBUG =  False
@@ -12,6 +12,10 @@ TOTAL_POS = 0
 
 WORDS = OrderedDict()
 TOTAL_WORDS = 0
+
+SUFFIXES = defaultdict(int)
+SUFFIX_LEN = 4 # Sufficient to capture 'able' a common JJ
+NON_SUFFIX = ('.','!','`','\'','"','``')
 
 def usage():
     print('train_set.py')
@@ -105,7 +109,15 @@ def main():
                     POS[line[1]] = pos
                 
                 # Set for word probabilities
-                pos.add_word(word)
+                # pos.add_word(word)
+                pos.words[word] += 1
+                pos.word_count += 1
+                suffix_len = min(SUFFIX_LEN, len(word.val)-1)
+                for i in range(suffix_len, 0 , -1):
+                    suf = word.val[-i:]
+                    if suf not in NON_SUFFIX:
+                        pos.suffix[suf] += 1
+                        SUFFIXES[suf] += 1
 
                 # Set for transition probabilities
                 prev_state.arcs[pos] += 1
@@ -165,6 +177,11 @@ def main():
 
         json.dump(json_list, out, indent=2)
         print("Training WORD data written to", training_file_words)
+
+    training_file_words = "trainingDataSUFFIX.json"
+    with open(training_file_words, 'w') as out:
+        json.dump(SUFFIXES, out, indent=2)
+        print("Training SUFFIX data written to", training_file_words)
 
 if __name__ == '__main__':
     main()
