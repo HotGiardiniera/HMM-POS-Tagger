@@ -70,7 +70,7 @@ def usage():
     sys.stdout.write("trainingDataPOS.json\n")
     sys.stdout.write("trainingDataWORD.json\n\n")
     sys.stdout.write("args\n")
-    sys.stdout.write('-d  Optional. Debug mode\n')
+    sys.stdout.write('-s  Optional. Sentence file. Default is WSJ_24.words\n')
 
 def get_emission(state, word):
     #TODO handle unknown words properly
@@ -203,7 +203,7 @@ def maxargmaxprob(t, N, state, word, unique_pos, Viterbi, last_state, prev_word,
 def main():
     global DEBUG
     VERBOSE = False
-    sentence_file = "WSJ_POS_CORPUS_FOR_STUDENTS/WSJ_24.words"
+    sentence_file = "WSJ_24.words"
     opts, args = getopt.getopt(sys.argv[1:], "hds:v", ["help","sentences="])
     for o, a in opts:
         if o == '-d':
@@ -215,6 +215,7 @@ def main():
             sentence_file = a
         elif o == '-v':
             VERBOSE = True
+
 
     global WORDS
     global POS

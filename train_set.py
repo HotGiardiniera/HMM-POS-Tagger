@@ -41,7 +41,7 @@ def check_plural(word):
     return False
 
 def main():
-    opts, args = getopt.getopt(sys.argv[1:], "f:t:d", ["file=", "trainingset="])
+    opts, args = getopt.getopt(sys.argv[1:], "f:t:dh:", ["file=", "trainingset=,", "help"])
     file = ''
     json_file ='' # A ssume training set data is held in a JSON file
     global DEBUG
@@ -53,6 +53,9 @@ def main():
             file = a
         elif o in ('-j', '--json'):
             json_file = a
+        elif o in ('-h', '--help'):
+            usage()
+            sys.exit()
 
     START = None
     END = None
